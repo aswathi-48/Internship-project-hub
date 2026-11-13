@@ -4,7 +4,7 @@ React (Vite) website built from "Internship Project Checklist & Timeline Plan".
 
 Sections: Overview, Timeline (1-month / 4-month), Ideas bank (search + level filter),
 Standard checklist (progress bar), Approval form (printable), Evaluation (marks calculator),
-Student tracking sheet (CSV download). Ticks and entries are saved in the browser.
+Student tracking sheet (Excel download with submission timestamps). Ticks and entries are saved in the browser.
 
 ## Run
     npm install

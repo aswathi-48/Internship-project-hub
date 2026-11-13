@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useStored from './useStored.js'
+import { createTrackerExcel } from './trackerExcel.js'
 import {
   tracks, ideas, phases, approvalFields, approvalChecks, criteria,
 } from './data.js'
@@ -278,33 +279,54 @@ function Evaluation() {
   )
 }
 
-const cols = ['Student', 'Track', 'Project no.', 'Source', 'Start date', 'End date', 'Status', 'Marks']
+const cols = ['Student', 'Track', 'Project no.', 'Source', 'Start date', 'End date', 'Status', 'Marks', 'Submitted at']
 
 function Tracker() {
   const blank = () => Array(cols.length).fill('')
   const [rows, setRows] = useStored('ih.tracker', [blank(), blank(), blank(), blank()])
-  const edit = (r, c, v) => setRows(rows.map((row, i) => (i === r ? row.map((x, j) => (j === c ? v : x)) : row)))
-  const exportCsv = () => {
-    const esc = v => `"${String(v).replace(/"/g, '""')}"`
-    const csv = [cols, ...rows].map(r => r.map(esc).join(',')).join('\n')
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    a.download = 'student-tracking-sheet.csv'
-    a.click()
+  const normalizedRows = rows.map(row => cols.map((_, i) => row[i] ?? ''))
+  const edit = (r, c, v) => setRows(normalizedRows.map((row, i) => (
+    i === r ? row.map((x, j) => (j === c ? v : x)) : row
+  )))
+  const updateStatus = (r, status) => setRows(normalizedRows.map((row, i) => {
+    if (i !== r) return row
+    const updated = [...row]
+    updated[6] = status
+    if (status === 'Submitted' && row[6] !== 'Submitted') {
+      updated[8] = new Date().toISOString()
+    }
+    return updated
+  }))
+  const exportExcel = () => {
+    const exportRows = normalizedRows.map(row => row.map((value, i) => (
+      i === 8 && value ? new Date(value).toLocaleString() : value
+    )))
+    const blob = new Blob([createTrackerExcel(cols, exportRows)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'student-tracking-sheet.xlsx'
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
   }
   return (
     <section>
       <h2>Student tracking sheet</h2>
+      <p>Enter student details and change the status to Submitted to record the submission time.</p>
       <div className="table-wrap">
         <table className="sheet">
           <thead><tr>{cols.map(c => <th key={c}>{c}</th>)}</tr></thead>
           <tbody>
-            {rows.map((row, r) => (
+            {normalizedRows.map((row, r) => (
               <tr key={r}>
                 {row.map((v, c) => (
                   <td key={c}>
                     {c === 6
-                      ? <select value={v} onChange={e => edit(r, c, e.target.value)}><option value=""></option><option>Not started</option><option>In progress</option><option>Submitted</option><option>Reviewed</option></select>
+                      ? <select value={v} onChange={e => updateStatus(r, e.target.value)}><option value=""></option><option>Not started</option><option>In progress</option><option>Submitted</option><option>Reviewed</option></select>
+                      : c === 8
+                        ? v ? new Date(v).toLocaleString() : ''
                       : <input aria-label={cols[c]} value={v} onChange={e => edit(r, c, e.target.value)} />}
                   </td>
                 ))}
@@ -315,7 +337,7 @@ function Tracker() {
       </div>
       <div className="actions">
         <button onClick={() => setRows([...rows, blank()])}>Add row</button>
-        <button className="primary" onClick={exportCsv}>Download CSV</button>
+        <button className="primary" onClick={exportExcel}>Download Excel sheet</button>
       </div>
     </section>
   )
