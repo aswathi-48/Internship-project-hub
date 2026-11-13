@@ -13,4 +13,6 @@ Student tracking sheet (CSV download). Ticks and entries are saved in the browse
 ## Build for hosting
     npm run build      # output in dist/ (upload to Netlify, Vercel, GitHub Pages)
 
+Netlify uses `netlify.toml` to run the build and publish `dist/`.
+
 Edit text, dates and ideas in `src/data.js`.
